@@ -11,7 +11,7 @@ import (
 
 func TestNewClient(t *testing.T) {
 	t.Run("can create a new client with a key", func(t *testing.T) {
-		client := anthropic.NewClient(anthropic.NewClientOptions{Key: "123"})
+		client := newClient()
 		is.NotNil(t, client)
 	})
 }
