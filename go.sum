@@ -12,5 +12,7 @@ github.com/tidwall/sjson v1.2.5 h1:kLy8mja+1c9jlljvWTlSazM7cKDRfJuR/bOJhcY5NcY=
 github.com/tidwall/sjson v1.2.5/go.mod h1:Fvgq9kS/6ociJEDnK0Fk1cpYF4FIW6ZF7LAe+6jwd28=
 maragu.dev/env v0.2.0 h1:nQKitDEB65ArZsh6E7vxzodOqY9bxEVFdBg+tskS1ys=
 maragu.dev/env v0.2.0/go.mod h1:t5CCbaEnjCM5mewiAVVzTS4N+oXTus2+SRnzKQbQVME=
+maragu.dev/gai v0.0.0-20250429195214-51f5daffacbb h1:PqSw9y9+vJJlvm5p1bpBBOrnIYDK6Fdt+dO4wLxAhaU=
+maragu.dev/gai v0.0.0-20250429195214-51f5daffacbb/go.mod h1:huBKC6QvdJ/JXetkTnuapP7MZtbqBkX90QemXUpQlbs=
 maragu.dev/is v0.3.0 h1:A2B6ylehcHJw7gQqzgwDMWMkS6jmhaBu8s6fy+RG6yA=
 maragu.dev/is v0.3.0/go.mod h1:bviaM5S0fBshCw7wuumFGTju/izopZ/Yvq4g7Klc7y8=

@@ -32,6 +32,7 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 			is.NotError(t, err)
 			output += part.Text()
 		}
+
 		is.Equal(t, "Hello! How are you doing today? Is there anything I can help you with?", output)
 	})
 }
