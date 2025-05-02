@@ -156,17 +156,17 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 					switch block := block.AsAny().(type) {
 					case anthropic.ToolUseBlock:
 						c.log.Debug("Tool call", "id", block.ID, "name", block.Name, "input", block.Input)
+						var found bool
 						for _, tool := range req.Tools {
-							var found bool
 							if tool.Name == block.Name {
 								found = true
 								if !yield(gai.ToolCallPart(block.ID, block.Name, block.Input), nil) {
 									return
 								}
 							}
-							if !found {
-								panic(fmt.Errorf("tool not found: %s", block.Name)) // TODO
-							}
+						}
+						if !found {
+							panic(fmt.Errorf("tool not found: %s", block.Name)) // TODO
 						}
 					}
 				}
