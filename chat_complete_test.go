@@ -1,21 +1,23 @@
 package anthropic_test
 
 import (
+	"embed"
+	"io/fs"
 	"testing"
 
 	"maragu.dev/gai"
+	"maragu.dev/gai/tools"
 	"maragu.dev/is"
 
 	anthropic "maragu.dev/gai-anthropic"
 )
 
+//go:embed testdata
+var testdata embed.FS
+
 func TestChatCompleter_ChatComplete(t *testing.T) {
 	t.Run("can chat-complete", func(t *testing.T) {
-		c := newClient()
-
-		cc := c.NewChatCompleter(anthropic.NewChatCompleterOptions{
-			Model: anthropic.ChatCompleteModelClaude3_5HaikuLatest,
-		})
+		cc := newChatCompleter(t)
 
 		req := gai.ChatCompleteRequest{
 			Messages: []gai.Message{
@@ -30,9 +32,106 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 		var output string
 		for part, err := range res.Parts() {
 			is.NotError(t, err)
-			output += part.Text()
+
+			switch part.Type {
+			case gai.MessagePartTypeText:
+				output += part.Text()
+
+			default:
+				t.Fatal("unexpected message parts")
+			}
 		}
 
 		is.Equal(t, "Hello! How are you doing today? Is there anything I can help you with?", output)
 	})
+
+	t.Run("can use a tool", func(t *testing.T) {
+		cc := newChatCompleter(t)
+
+		subFS, err := fs.Sub(testdata, "testdata")
+		is.NotError(t, err)
+
+		req := gai.ChatCompleteRequest{
+			Messages: []gai.Message{
+				gai.NewUserTextMessage("What is in the readme.txt file?"),
+			},
+			Temperature: gai.Ptr(gai.Temperature(0)),
+			Tools: []gai.Tool{
+				tools.NewReadFile(subFS),
+			},
+		}
+
+		res, err := cc.ChatComplete(t.Context(), req)
+		is.NotError(t, err)
+
+		var output string
+		var found bool
+		var parts []gai.MessagePart
+		var result gai.ToolResult
+		for part, err := range res.Parts() {
+			is.NotError(t, err)
+
+			parts = append(parts, part)
+
+			switch part.Type {
+			case gai.MessagePartTypeToolCall:
+				toolCall := part.ToolCall()
+				for _, tool := range req.Tools {
+					if tool.Name == toolCall.Name {
+						found = true
+						content, err := tool.Function(t.Context(), toolCall.Args)
+						result = gai.ToolResult{
+							ID:      toolCall.ID,
+							Content: content,
+							Err:     err,
+						}
+						break
+					}
+				}
+
+			case gai.MessagePartTypeText:
+				output += part.Text()
+
+			default:
+				t.Fatal("unexpected message parts")
+			}
+		}
+
+		is.Equal(t, "I'll read the contents of the readme.txt file for you.", output)
+		is.True(t, found, "tool not found")
+		is.Equal(t, "Hi!\n", result.Content)
+		is.NotError(t, result.Err)
+
+		req.Messages = []gai.Message{
+			gai.NewUserTextMessage("What is in the readme.txt file?"),
+			{Role: gai.MessageRoleAssistant, Parts: parts},
+			gai.NewUserToolResultMessage(result),
+		}
+
+		res, err = cc.ChatComplete(t.Context(), req)
+		is.NotError(t, err)
+
+		output = ""
+		for part, err := range res.Parts() {
+			is.NotError(t, err)
+
+			switch part.Type {
+			case gai.MessagePartTypeText:
+				output += part.Text()
+
+			default:
+				t.Fatal("unexpected message parts")
+			}
+		}
+
+		is.Equal(t, `The readme.txt file simply contains the text "Hi!" - it's a very brief readme file.`, output)
+	})
+}
+
+func newChatCompleter(t *testing.T) *anthropic.ChatCompleter {
+	c := newClient(t)
+	cc := c.NewChatCompleter(anthropic.NewChatCompleterOptions{
+		Model: anthropic.ChatCompleteModelClaude3_5HaikuLatest,
+	})
+	return cc
 }
