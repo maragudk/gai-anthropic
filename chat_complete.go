@@ -2,6 +2,7 @@ package anthropic
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 
 	"github.com/anthropics/anthropic-sdk-go"
@@ -39,13 +40,10 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 		panic("no messages")
 	}
 
-	if req.Messages[len(req.Messages)-1].Role != gai.MessageRoleUser {
-		panic("last message must have user role")
-	}
-
 	var messages []anthropic.MessageParam
 	for _, m := range req.Messages {
 		var parts []anthropic.ContentBlockParamUnion
+
 		for _, part := range m.Parts {
 			switch part.Type {
 			case gai.MessagePartTypeText:
@@ -54,6 +52,39 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 						Text: part.Text(),
 					},
 				})
+
+			case gai.MessagePartTypeToolCall:
+				toolCall := part.ToolCall()
+				parts = append(parts, anthropic.ContentBlockParamUnion{
+					OfRequestToolUseBlock: &anthropic.ToolUseBlockParam{
+						ID:    toolCall.ID,
+						Name:  toolCall.Name,
+						Input: toolCall.Args,
+					},
+				})
+
+			case gai.MessagePartTypeToolResult:
+				toolResult := part.ToolResult()
+				content := toolResult.Content
+				var isError bool
+				if toolResult.Err != nil {
+					isError = true
+					content = toolResult.Err.Error()
+				}
+				parts = append(parts, anthropic.ContentBlockParamUnion{
+					OfRequestToolResultBlock: &anthropic.ToolResultBlockParam{
+						ToolUseID: toolResult.ID,
+						Content: []anthropic.ToolResultBlockParamContentUnion{
+							{
+								OfRequestTextBlock: &anthropic.TextBlockParam{
+									Text: content,
+								},
+							},
+						},
+						IsError: anthropic.Bool(isError),
+					},
+				})
+
 			default:
 				panic("not implemented")
 			}
@@ -65,6 +96,19 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 		})
 	}
 
+	var tools []anthropic.ToolUnionParam
+	for _, tool := range req.Tools {
+		tools = append(tools, anthropic.ToolUnionParam{
+			OfTool: &anthropic.ToolParam{
+				Name:        tool.Name,
+				Description: anthropic.String(tool.Description),
+				InputSchema: anthropic.ToolInputSchemaParam{
+					Properties: tool.Schema.Properties,
+				},
+			},
+		})
+	}
+
 	// TODO: Temperature ranges from 0 to 1, normalize
 	var temperature param.Opt[float64]
 	if req.Temperature != nil {
@@ -72,10 +116,11 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 	}
 
 	stream := c.Client.Messages.NewStreaming(ctx, anthropic.MessageNewParams{
-		MaxTokens:   1024,
+		MaxTokens:   1024, // TODO make variable
 		Messages:    messages,
 		Model:       string(c.model),
 		Temperature: temperature,
+		Tools:       tools,
 	})
 
 	return gai.NewChatCompleteResponse(func(yield func(gai.MessagePart, error) bool) {
@@ -88,20 +133,44 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 		var message anthropic.Message
 		for stream.Next() {
 			event := stream.Current()
-			err := message.Accumulate(event)
-			if err != nil {
-				yield(gai.MessagePart{}, err)
+
+			if err := message.Accumulate(event); err != nil {
+				yield(gai.MessagePart{}, fmt.Errorf("error accumulating message: %w", err))
 				return
 			}
 
-			switch eventVariant := event.AsAny().(type) {
+			switch event := event.AsAny().(type) {
+			case anthropic.ContentBlockStartEvent:
+
 			case anthropic.ContentBlockDeltaEvent:
-				switch deltaVariant := eventVariant.Delta.AsAny().(type) {
+				switch delta := event.Delta.AsAny().(type) {
 				case anthropic.TextDelta:
-					if !yield(gai.TextMessagePart(deltaVariant.Text), nil) {
+					if !yield(gai.TextMessagePart(delta.Text), nil) {
 						return
 					}
 				}
+
+			case anthropic.ContentBlockStopEvent:
+				// Use the accumulated block for the tool use only
+				for _, block := range message.Content {
+					switch block := block.AsAny().(type) {
+					case anthropic.ToolUseBlock:
+						c.log.Debug("Tool call", "id", block.ID, "name", block.Name, "input", block.Input)
+						for _, tool := range req.Tools {
+							var found bool
+							if tool.Name == block.Name {
+								found = true
+								if !yield(gai.ToolCallPart(block.ID, block.Name, block.Input), nil) {
+									return
+								}
+							}
+							if !found {
+								panic(fmt.Errorf("tool not found: %s", block.Name)) // TODO
+							}
+						}
+					}
+				}
+				message = anthropic.Message{}
 			}
 		}
 
