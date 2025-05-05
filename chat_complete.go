@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"strings"
 
 	"github.com/anthropics/anthropic-sdk-go"
 	"github.com/anthropics/anthropic-sdk-go/packages/param"
@@ -135,8 +136,11 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 			event := stream.Current()
 
 			if err := message.Accumulate(event); err != nil {
-				yield(gai.MessagePart{}, fmt.Errorf("error accumulating message: %w", err))
-				return
+				// A hack to circumvent a bug, see https://github.com/anthropics/anthropic-sdk-go/issues/164
+				if !strings.Contains(err.Error(), "unexpected end of JSON input") {
+					yield(gai.MessagePart{}, fmt.Errorf("error accumulating message: %w", err))
+					return
+				}
 			}
 
 			switch event := event.AsAny().(type) {
