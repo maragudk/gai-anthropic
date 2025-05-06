@@ -36,6 +36,7 @@ func (c *Client) NewChatCompleter(opts NewChatCompleterOptions) *ChatCompleter {
 	}
 }
 
+// ChatComplete satisfies [gai.ChatCompleter].
 func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRequest) (gai.ChatCompleteResponse, error) {
 	if len(req.Messages) == 0 {
 		panic("no messages")
@@ -183,3 +184,5 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 		}
 	}), nil
 }
+
+var _ gai.ChatCompleter = (*ChatCompleter)(nil)

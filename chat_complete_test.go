@@ -1,8 +1,7 @@
 package anthropic_test
 
 import (
-	"embed"
-	"io/fs"
+	"os"
 	"testing"
 
 	"maragu.dev/gai"
@@ -11,9 +10,6 @@ import (
 
 	anthropic "maragu.dev/gai-anthropic"
 )
-
-//go:embed testdata
-var testdata embed.FS
 
 func TestChatCompleter_ChatComplete(t *testing.T) {
 	t.Run("can chat-complete", func(t *testing.T) {
@@ -43,12 +39,32 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 		}
 
 		is.Equal(t, "Hello! How are you doing today? Is there anything I can help you with?", output)
+
+		req.Messages = append(req.Messages, gai.NewAssistantTextMessage("Hello! How are you doing today? Is there anything I can help you with?"))
+		req.Messages = append(req.Messages, gai.NewUserTextMessage("What does the acronym AI stand for? Be brief."))
+
+		res, err = cc.ChatComplete(t.Context(), req)
+		is.NotError(t, err)
+
+		output = ""
+		for part, err := range res.Parts() {
+			is.NotError(t, err)
+
+			switch part.Type {
+			case gai.MessagePartTypeText:
+				output += part.Text()
+
+			default:
+				t.Fatal("unexpected message parts")
+			}
+		}
+		is.Equal(t, "AI stands for Artificial Intelligence.", output)
 	})
 
 	t.Run("can use a tool", func(t *testing.T) {
 		cc := newChatCompleter(t)
 
-		subFS, err := fs.Sub(testdata, "testdata")
+		root, err := os.OpenRoot("testdata")
 		is.NotError(t, err)
 
 		req := gai.ChatCompleteRequest{
@@ -57,7 +73,7 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 			},
 			Temperature: gai.Ptr(gai.Temperature(0)),
 			Tools: []gai.Tool{
-				tools.NewReadFile(subFS),
+				tools.NewReadFile(root),
 			},
 		}
 
@@ -130,13 +146,16 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 	t.Run("can use a tool with no args", func(t *testing.T) {
 		cc := newChatCompleter(t)
 
+		root, err := os.OpenRoot("testdata")
+		is.NotError(t, err)
+
 		req := gai.ChatCompleteRequest{
 			Messages: []gai.Message{
 				gai.NewUserTextMessage("What is in the current directory?"),
 			},
 			Temperature: gai.Ptr(gai.Temperature(0)),
 			Tools: []gai.Tool{
-				tools.NewListDir(testdata),
+				tools.NewListDir(root),
 			},
 		}
 
@@ -178,7 +197,7 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 
 		is.Equal(t, "I'll help you list the contents of the current directory. I'll use the `list_dir` function to show you what files and directories are present.", output)
 		is.True(t, found, "tool not found")
-		is.Equal(t, `["testdata/","testdata/readme.txt"]`, result.Content)
+		is.Equal(t, `["readme.txt"]`, result.Content)
 		is.NotError(t, result.Err)
 	})
 }
