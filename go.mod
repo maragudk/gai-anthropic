@@ -5,7 +5,7 @@ go 1.24
 require (
 	github.com/anthropics/anthropic-sdk-go v0.2.0-beta.3
 	maragu.dev/env v0.2.0
-	maragu.dev/gai v0.0.0-20250506111739-0adf2681dec9
+	maragu.dev/gai v0.0.0-20250506132842-6f91f066fe8e
 	maragu.dev/is v0.3.0
 )
 

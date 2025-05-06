@@ -117,10 +117,20 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 		temperature = param.NewOpt[float64](req.Temperature.Float64())
 	}
 
+	var system []anthropic.TextBlockParam
+	if req.System != nil {
+		system = []anthropic.TextBlockParam{
+			{
+				Text: *req.System,
+			},
+		}
+	}
+
 	stream := c.Client.Messages.NewStreaming(ctx, anthropic.MessageNewParams{
 		MaxTokens:   1024, // TODO make variable
 		Messages:    messages,
 		Model:       string(c.model),
+		System:      system,
 		Temperature: temperature,
 		Tools:       tools,
 	})

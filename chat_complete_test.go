@@ -200,6 +200,36 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 		is.Equal(t, `["readme.txt"]`, result.Content)
 		is.NotError(t, result.Err)
 	})
+
+	t.Run("can use a system prompt", func(t *testing.T) {
+		cc := newChatCompleter(t)
+
+		req := gai.ChatCompleteRequest{
+			Messages: []gai.Message{
+				gai.NewUserTextMessage("Hi!"),
+			},
+			System:      gai.Ptr("You always respond in French."),
+			Temperature: gai.Ptr(gai.Temperature(0)),
+		}
+
+		res, err := cc.ChatComplete(t.Context(), req)
+		is.NotError(t, err)
+
+		var output string
+		for part, err := range res.Parts() {
+			is.NotError(t, err)
+
+			switch part.Type {
+			case gai.MessagePartTypeText:
+				output += part.Text()
+
+			default:
+				t.Fatal("unexpected message parts")
+			}
+		}
+
+		is.Equal(t, "Bonjour ! Comment allez-vous aujourd'hui ? Je suis ravi(e) de vous parler en français.", output)
+	})
 }
 
 func newChatCompleter(t *testing.T) *anthropic.ChatCompleter {
