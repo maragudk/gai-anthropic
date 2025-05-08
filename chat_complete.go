@@ -92,9 +92,19 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 			}
 		}
 
+		var role anthropic.MessageParamRole
+		switch m.Role {
+		case gai.MessageRoleUser:
+			role = anthropic.MessageParamRoleUser
+		case gai.MessageRoleModel:
+			role = anthropic.MessageParamRoleAssistant
+		default:
+			panic("unknown role " + m.Role)
+		}
+
 		messages = append(messages, anthropic.MessageParam{
 			Content: parts,
-			Role:    anthropic.MessageParamRole(m.Role),
+			Role:    role,
 		})
 	}
 

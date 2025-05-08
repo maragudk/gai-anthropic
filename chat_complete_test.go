@@ -40,7 +40,7 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 
 		is.Equal(t, "Hello! How are you doing today? Is there anything I can help you with?", output)
 
-		req.Messages = append(req.Messages, gai.NewAssistantTextMessage("Hello! How are you doing today? Is there anything I can help you with?"))
+		req.Messages = append(req.Messages, gai.NewModelTextMessage("Hello! How are you doing today? Is there anything I can help you with?"))
 		req.Messages = append(req.Messages, gai.NewUserTextMessage("What does the acronym AI stand for? Be brief."))
 
 		res, err = cc.ChatComplete(t.Context(), req)
@@ -120,7 +120,7 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 
 		req.Messages = []gai.Message{
 			gai.NewUserTextMessage("What is in the readme.txt file?"),
-			{Role: gai.MessageRoleAssistant, Parts: parts},
+			{Role: gai.MessageRoleModel, Parts: parts},
 			gai.NewUserToolResultMessage(result),
 		}
 
