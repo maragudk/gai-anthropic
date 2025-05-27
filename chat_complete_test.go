@@ -98,6 +98,7 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 						content, err := tool.Function(t.Context(), toolCall.Args)
 						result = gai.ToolResult{
 							ID:      toolCall.ID,
+							Name:    toolCall.Name,
 							Content: content,
 							Err:     err,
 						}
@@ -180,6 +181,7 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 						content, err := tool.Function(t.Context(), toolCall.Args)
 						result = gai.ToolResult{
 							ID:      toolCall.ID,
+							Name:    toolCall.Name,
 							Content: content,
 							Err:     err,
 						}
@@ -195,7 +197,7 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 			}
 		}
 
-		is.Equal(t, "I'll help you list the contents of the current directory. I'll use the `list_dir` function to show you what files and directories are present.", output)
+		is.Equal(t, "I'll help you list the contents of the current directory. I'll use the `list_dir` function to retrieve this information.", output)
 		is.True(t, found, "tool not found")
 		is.Equal(t, `["readme.txt"]`, result.Content)
 		is.NotError(t, result.Err)
@@ -228,7 +230,7 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 			}
 		}
 
-		is.Equal(t, "Bonjour ! Comment allez-vous aujourd'hui ? Je suis ravi(e) de vous parler en français.", output)
+		is.Equal(t, "Bonjour ! Comment allez-vous aujourd'hui ? Je suis ravi de vous parler en français.", output)
 	})
 }
 
