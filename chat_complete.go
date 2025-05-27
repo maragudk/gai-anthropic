@@ -50,7 +50,7 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 			switch part.Type {
 			case gai.MessagePartTypeText:
 				parts = append(parts, anthropic.ContentBlockParamUnion{
-					OfRequestTextBlock: &anthropic.TextBlockParam{
+					OfText: &anthropic.TextBlockParam{
 						Text: part.Text(),
 					},
 				})
@@ -58,7 +58,7 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 			case gai.MessagePartTypeToolCall:
 				toolCall := part.ToolCall()
 				parts = append(parts, anthropic.ContentBlockParamUnion{
-					OfRequestToolUseBlock: &anthropic.ToolUseBlockParam{
+					OfToolUse: &anthropic.ToolUseBlockParam{
 						ID:    toolCall.ID,
 						Name:  toolCall.Name,
 						Input: toolCall.Args,
@@ -74,11 +74,11 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 					content = toolResult.Err.Error()
 				}
 				parts = append(parts, anthropic.ContentBlockParamUnion{
-					OfRequestToolResultBlock: &anthropic.ToolResultBlockParam{
+					OfToolResult: &anthropic.ToolResultBlockParam{
 						ToolUseID: toolResult.ID,
 						Content: []anthropic.ToolResultBlockParamContentUnion{
 							{
-								OfRequestTextBlock: &anthropic.TextBlockParam{
+								OfText: &anthropic.TextBlockParam{
 									Text: content,
 								},
 							},
@@ -124,7 +124,7 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 	// TODO: Temperature ranges from 0 to 1, normalize
 	var temperature param.Opt[float64]
 	if req.Temperature != nil {
-		temperature = param.NewOpt[float64](req.Temperature.Float64())
+		temperature = param.NewOpt(req.Temperature.Float64())
 	}
 
 	var system []anthropic.TextBlockParam
@@ -139,7 +139,7 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 	stream := c.Client.Messages.NewStreaming(ctx, anthropic.MessageNewParams{
 		MaxTokens:   1024, // TODO make variable
 		Messages:    messages,
-		Model:       string(c.model),
+		Model:       anthropic.Model(c.model),
 		System:      system,
 		Temperature: temperature,
 		Tools:       tools,
