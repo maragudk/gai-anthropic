@@ -3,10 +3,10 @@ module maragu.dev/gai-anthropic
 go 1.24
 
 require (
-	github.com/anthropics/anthropic-sdk-go v1.2.0
+	github.com/anthropics/anthropic-sdk-go v1.9.1
 	maragu.dev/env v0.2.0
-	maragu.dev/gai v0.0.0-20250527154524-635a01ab9826
-	maragu.dev/is v0.3.0
+	maragu.dev/gai v0.0.0-20250826105131-21f642fac70d
+	maragu.dev/is v0.3.1
 )
 
 require (
@@ -14,7 +14,7 @@ require (
 	github.com/buger/jsonparser v1.1.1 // indirect
 	github.com/invopop/jsonschema v0.13.0 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
-	github.com/tidwall/gjson v1.14.4 // indirect
+	github.com/tidwall/gjson v1.18.0 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.1 // indirect
 	github.com/tidwall/sjson v1.2.5 // indirect

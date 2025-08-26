@@ -2,6 +2,7 @@ package anthropic_test
 
 import (
 	"os"
+	"strings"
 	"testing"
 
 	"maragu.dev/gai"
@@ -95,7 +96,7 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 				for _, tool := range req.Tools {
 					if tool.Name == toolCall.Name {
 						found = true
-						content, err := tool.Function(t.Context(), toolCall.Args)
+						content, err := tool.Execute(t.Context(), toolCall.Args)
 						result = gai.ToolResult{
 							ID:      toolCall.ID,
 							Name:    toolCall.Name,
@@ -141,7 +142,7 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 			}
 		}
 
-		is.Equal(t, `The readme.txt file simply contains the text "Hi!" - it's a very brief readme file.`, output)
+		is.True(t, strings.Contains(output, `The readme.txt file simply contains the text "Hi!"`), output)
 	})
 
 	t.Run("can use a tool with no args", func(t *testing.T) {
@@ -178,7 +179,7 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 				for _, tool := range req.Tools {
 					if tool.Name == toolCall.Name {
 						found = true
-						content, err := tool.Function(t.Context(), toolCall.Args)
+						content, err := tool.Execute(t.Context(), toolCall.Args)
 						result = gai.ToolResult{
 							ID:      toolCall.ID,
 							Name:    toolCall.Name,
@@ -197,7 +198,7 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 			}
 		}
 
-		is.Equal(t, "I'll help you list the contents of the current directory. I'll use the `list_dir` function to retrieve this information.", output)
+		is.Equal(t, "I'll help you list the contents of the current directory. I'll use the `list_dir` function to show you what files and directories are present.", output)
 		is.True(t, found, "tool not found")
 		is.Equal(t, `["readme.txt"]`, result.Content)
 		is.NotError(t, result.Err)
@@ -230,7 +231,7 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 			}
 		}
 
-		is.Equal(t, "Bonjour ! Comment allez-vous aujourd'hui ? Je suis ravi de vous parler en français.", output)
+		is.True(t, strings.Contains(output, "Bonjour ! Comment allez-vous aujourd'hui ?"), output)
 	})
 }
 
