@@ -54,7 +54,6 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 			attribute.Int("ai.message_count", len(req.Messages)),
 		),
 	)
-	defer span.End()
 
 	if len(req.Messages) == 0 {
 		panic("no messages")
@@ -176,6 +175,8 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 	})
 
 	return gai.NewChatCompleteResponse(func(yield func(gai.MessagePart, error) bool) {
+		defer span.End()
+
 		defer func() {
 			if err := stream.Close(); err != nil {
 				c.log.Info("Error closing stream", "error", err)
