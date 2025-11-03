@@ -3,7 +3,7 @@ module maragu.dev/gai-anthropic
 go 1.24
 
 require (
-	github.com/anthropics/anthropic-sdk-go v1.14.0
+	github.com/anthropics/anthropic-sdk-go v1.16.0
 	go.opentelemetry.io/otel v1.38.0
 	go.opentelemetry.io/otel/trace v1.38.0
 	maragu.dev/env v0.2.0
